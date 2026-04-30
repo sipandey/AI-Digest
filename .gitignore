@@ -1,0 +1,8 @@
+.env
+daily_papers/*.json
+daily_papers/*.md
+logs/*.log
+__pycache__/
+*.pyc
+.DS_Store
+.venv/

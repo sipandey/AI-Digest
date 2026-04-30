@@ -1,0 +1,57 @@
+name: Daily arXiv Digest
+
+# Required secrets (set under Settings → Secrets and variables → Actions):
+#   OPENAI_API_KEY      — OpenAI API key for GPT-4o-mini scoring
+#   NOTION_TOKEN        — Notion integration token
+#   NOTION_DATABASE_ID  — Target Notion database ID
+
+on:
+  schedule:
+    - cron: "30 1 * * *"  # 07:00 IST (UTC+5:30)
+  workflow_dispatch:       # allow manual runs from the Actions tab
+
+# Only one digest run at a time; never cancel an in-progress run.
+concurrency:
+  group: daily-digest
+  cancel-in-progress: false
+
+permissions:
+  contents: write  # needed to push daily_papers/ and logs/ back to the repo
+
+jobs:
+  run-digest:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: pip-
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run pipeline
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DATABASE_ID: ${{ secrets.NOTION_DATABASE_ID }}
+        run: python -m src.pipeline
+
+      - name: Commit and push digest artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add daily_papers/ logs/
+          git diff --staged --quiet || git commit -m "digest: $(date -u +%Y-%m-%d)"
+          git push
