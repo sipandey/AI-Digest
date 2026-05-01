@@ -3,6 +3,7 @@
 import json
 import logging
 import os
+import time
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
@@ -113,6 +114,7 @@ def _call_openai(papers: list) -> list:
     user_prompt = _build_user_prompt(papers)
 
     logger.info("Sending %d papers to %s for scoring…", len(papers), MODEL)
+    t0 = time.monotonic()
     response = client.chat.completions.create(
         model=MODEL,
         messages=[
@@ -122,10 +124,12 @@ def _call_openai(papers: list) -> list:
         temperature=0.2,
         response_format={"type": "json_object"},
     )
+    elapsed = time.monotonic() - t0
 
     raw = response.choices[0].message.content
     logger.info(
-        "OpenAI call complete. Tokens used: %d prompt / %d completion",
+        "OpenAI call complete in %.1fs. Tokens used: %d prompt / %d completion",
+        elapsed,
         response.usage.prompt_tokens,
         response.usage.completion_tokens,
     )
