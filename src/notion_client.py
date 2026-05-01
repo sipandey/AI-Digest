@@ -96,13 +96,25 @@ def _toggle(label: str, children: list) -> dict:
 
 
 def _paper_toggle(paper: dict) -> dict:
+    bd = paper.get("breakdown", {})
+    score_line = (
+        f"Score: {paper.get('score', '?')}/10  |  Cluster: {paper.get('cluster', '?')}  |  arXiv: {paper.get('id', '?')}"
+    )
+    breakdown_line = (
+        f"Builder: {bd.get('builder_relevance', '?')}/3  |  "
+        f"Clarity: {bd.get('understandability', '?')}/3  |  "
+        f"Real-world: {bd.get('real_world_grounding', '?')}/2  |  "
+        f"Novel: {bd.get('novelty_timing', '?')}/2"
+    )
     children = [
-        _paragraph(f"Score: {paper.get('score', '?')}/10  |  Cluster: {paper.get('cluster', '?')}  |  arXiv: {paper.get('id', '?')}"),
+        _paragraph(score_line),
+        _paragraph(breakdown_line),
         _paragraph(f"PDF: {paper.get('pdf_url', '')}"),
         _paragraph(f"Problem: {paper.get('problem', '')}"),
         _paragraph(f"Approach: {paper.get('approach', '')}"),
         _paragraph(f"Results: {paper.get('results', '')}"),
-        _paragraph(f"Production Takeaway: {paper.get('takeaway', '')}"),
+        _paragraph(f"Builder Takeaway: {paper.get('builder_takeaway', '')}"),
+        _paragraph(f"Before reading: {paper.get('learning_path', '')}"),
     ]
     return _toggle(paper["title"], children)
 
