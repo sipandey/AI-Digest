@@ -20,12 +20,15 @@ def _make_paper(paper_id: str, title: str, abstract: str = "", score: int = 8) -
         "pdf_url": f"https://arxiv.org/pdf/{paper_id}",
         "published": "2024-01-01",
         "category": "cs.LG",
+        "matched_group": "Building with LLMs",
         "score": score,
-        "cluster": "RAG",
+        "breakdown": {"builder_relevance": 3, "understandability": 2, "real_world_grounding": 2, "novelty_timing": 1},
+        "cluster": "Building with LLMs",
         "problem": "A problem.",
         "approach": "An approach.",
         "results": "Some results.",
-        "takeaway": "A takeaway.",
+        "builder_takeaway": "A takeaway.",
+        "learning_path": "No prerequisites — start here",
     }
 
 
@@ -64,13 +67,15 @@ class TestFetcherKeywordFilter(unittest.TestCase):
 
 class TestRankerJsonParsing(unittest.TestCase):
     def _scored_entries(self):
+        bd_high = {"builder_relevance": 3, "understandability": 2, "real_world_grounding": 2, "novelty_timing": 1}
+        bd_low  = {"builder_relevance": 1, "understandability": 2, "real_world_grounding": 2, "novelty_timing": 1}
         return [
-            {"id": "2401.00001", "score": 8, "cluster": "RAG",
-             "problem": "p", "approach": "a", "results": "r", "takeaway": "t"},
-            {"id": "2401.00002", "score": 6, "cluster": "Other",
-             "problem": "p", "approach": "a", "results": "r", "takeaway": "t"},
-            {"id": "2401.00003", "score": 9, "cluster": "LLM Serving",
-             "problem": "p", "approach": "a", "results": "r", "takeaway": "t"},
+            {"id": "2401.00001", "score": 8, "breakdown": bd_high, "cluster": "Building with LLMs",
+             "problem": "p", "approach": "a", "results": "r", "builder_takeaway": "t", "learning_path": "l"},
+            {"id": "2401.00002", "score": 6, "breakdown": bd_low,  "cluster": "Foundational Concepts",
+             "problem": "p", "approach": "a", "results": "r", "builder_takeaway": "t", "learning_path": "l"},
+            {"id": "2401.00003", "score": 9, "breakdown": bd_high, "cluster": "AI Agents",
+             "problem": "p", "approach": "a", "results": "r", "builder_takeaway": "t", "learning_path": "l"},
         ]
 
     def test_ranker_json_parsing(self):
@@ -114,13 +119,24 @@ class TestDigestFormatting(unittest.TestCase):
             _make_paper("2401.00002", "Cold-Start via LLM Synthesis", score=7),
         ]
 
-        digest = _format_digest(papers)
+        digest = _format_digest(papers, total_fetched=50)
 
         for p in papers:
             self.assertIn(p["title"], digest)
             self.assertIn(str(p["score"]), digest)
             self.assertIn(p["cluster"], digest)
             self.assertIn(p["pdf_url"], digest)
+
+        # Header fields
+        self.assertIn("Papers fetched: 50", digest)
+        self.assertIn("Papers passed (7+): 2", digest)
+        self.assertIn("Today by cluster", digest)
+        # Breakdown labels
+        self.assertIn("Builder:", digest)
+        self.assertIn("Clarity:", digest)
+        # New summary fields
+        self.assertIn("Builder Takeaway:", digest)
+        self.assertIn("Before reading:", digest)
 
 
 # ---------------------------------------------------------------------------
