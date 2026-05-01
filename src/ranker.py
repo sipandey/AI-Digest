@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 RAW_OUTPUT_DIR = Path("daily_papers")
 MIN_SCORE = 7
 MODEL = "gpt-4o-mini"
+BATCH_SIZE = 50  # keeps completion tokens well under the 16k model limit
 
 _SYSTEM_PROMPT = """\
 You are a research curator for a web developer who is learning AI and wants to \
@@ -192,9 +193,10 @@ def _save_digest(digest_text: str) -> Path:
 
 
 def rank_papers(papers: list) -> list:
-    """Score, filter (≥7), and summarize papers via a single GPT-4o-mini call.
+    """Score, filter (≥7), and summarize papers in batches via GPT-4o-mini.
 
-    Returns paper dicts with summary fields merged in, sorted by score descending.
+    Papers are sent in batches of BATCH_SIZE to stay under the model's output
+    token limit. Results are merged, filtered, and sorted before returning.
     Also writes a markdown digest to daily_papers/digest_YYYY_MM_DD.md.
     """
     total_fetched = len(papers)
@@ -204,7 +206,14 @@ def rank_papers(papers: list) -> list:
         _save_digest(_format_digest([], total_fetched=0))
         return []
 
-    scored = _call_openai(papers)
+    # Split into batches and collect all scored entries
+    batches = [papers[i:i + BATCH_SIZE] for i in range(0, len(papers), BATCH_SIZE)]
+    logger.info("Scoring %d papers in %d batch(es) of up to %d…", total_fetched, len(batches), BATCH_SIZE)
+
+    scored = []
+    for idx, batch in enumerate(batches, 1):
+        logger.info("Batch %d/%d (%d papers)…", idx, len(batches), len(batch))
+        scored.extend(_call_openai(batch))
 
     originals = {p["id"]: p for p in papers}
 
