@@ -18,6 +18,9 @@ concurrency:
 permissions:
   contents: write  # needed to push daily_papers/ and logs/ back to the repo
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   run-digest:
     runs-on: ubuntu-latest
