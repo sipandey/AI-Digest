@@ -35,23 +35,27 @@ def _make_paper(paper_id: str, title: str, abstract: str = "", score: int = 8) -
 
 class TestFetcherKeywordFilter(unittest.TestCase):
     def test_fetcher_keyword_filter(self):
-        from src.fetcher import _KEYWORD_RE
+        from src.fetcher import _GROUP_PATTERNS
 
-        # 3 should match, 2 should not
+        def first_match(title, abstract):
+            haystack = f"{title} {abstract}"
+            for name, pattern in _GROUP_PATTERNS:
+                if pattern.search(haystack):
+                    return name
+            return None
+
+        # 3 should match (one per group), 2 should not
         candidates = [
-            ("RAG pipeline for open-domain QA", "We study retrieval-augmented generation."),
-            ("Session-based recommendations", "We model cold-start users with collaborative filtering."),
-            ("Fast inference with vLLM and KV cache reuse", "Quantization reduces memory."),
-            ("Image segmentation with diffusion models", "No relevant keywords here."),
-            ("Graph neural networks for molecule property prediction", "Unrelated content."),
+            ("RAG pipeline for open-domain QA", "We study retrieval-augmented generation.", "Building with LLMs"),
+            ("An AI agent for workflow automation", "Agentic task planning system.", "AI Agents and Automation"),
+            ("Semantic search with vector databases", "Embedding-based similarity search.", "Practical AI Systems"),
+            ("Image segmentation with diffusion models", "No relevant keywords here.", None),
+            ("Graph neural networks for molecule property prediction", "Unrelated content.", None),
         ]
 
-        matched = [
-            (t, a) for t, a in candidates
-            if _KEYWORD_RE.search(f"{t} {a}")
-        ]
-
-        self.assertEqual(len(matched), 3)
+        for title, abstract, expected_group in candidates:
+            result = first_match(title, abstract)
+            self.assertEqual(result, expected_group, f"Failed for: {title}")
 
 
 # ---------------------------------------------------------------------------
