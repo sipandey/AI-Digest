@@ -1,12 +1,37 @@
 # AI Digest
 
-> Your daily briefing on the latest arXiv research — automatically fetched, scored, and delivered to Notion every morning.
+> A daily arXiv digest built for developers learning AI and building AI-powered products.
 
 Every day at **7:00 AM IST**, this pipeline:
-1. Pulls the latest papers from arXiv across Machine Learning, NLP, and Information Retrieval
-2. Filters for topics relevant to production ML — RAG, recommendations, LLM serving, AI agents, search ranking
-3. Scores each paper 1–10 using GPT-4o-mini (novelty, practical applicability, evaluation quality)
-4. Pushes a structured digest to your Notion database with summaries and production takeaways
+1. Pulls the latest papers from arXiv across 5 categories (ML, NLP, IR, AI, HCI)
+2. Filters for topics relevant to building with LLMs, AI agents, search, and AI products
+3. Scores each paper using GPT-4o-mini across 4 criteria tailored for a developer audience
+4. Pushes a structured digest to your Notion database — summaries written without jargon
+
+---
+
+## Who this is for
+
+This digest is designed for someone with a **web development background** (JS, frontend, backend) who is learning AI and wants to integrate it into real products. Every summary is written to answer: *can I use this, and how do I start?*
+
+---
+
+## How papers are scored
+
+Each paper is scored out of **10** across four criteria:
+
+| Criterion | Max | What it measures |
+|---|---|---|
+| **Builder Relevance** | 3 | Can you build something with this today? |
+| **Understandability** | 3 | Can a developer new to AI follow the core idea? |
+| **Real World Grounding** | 2 | Is it tested on real problems, not toy datasets? |
+| **Novelty & Timing** | 2 | Is this a new idea worth knowing about early? |
+
+Only papers scoring **7 or higher** make it into the digest.
+
+Each paper also includes:
+- **Builder Takeaway** — the single most useful thing you can take away as a developer
+- **Before reading** — what concept to understand first before diving in
 
 ---
 
@@ -14,8 +39,21 @@ Every day at **7:00 AM IST**, this pipeline:
 
 Each day's digest is a single Notion page with:
 - **Run stats** — papers fetched, papers that passed the 7/10 threshold, top score
-- **One toggle per paper** — score, cluster, problem, approach, results, and a one-line production takeaway
+- **Cluster summary** — how many papers landed in each topic group today
+- **One toggle per paper** — score breakdown, problem, approach, results, builder takeaway, and a learning path pointer
 - **Status** — `Complete` if papers were found, `Empty` if nothing matched that day
+
+---
+
+## Topics covered
+
+| Group | Sample keywords |
+|---|---|
+| **Building with LLMs** | RAG, prompt engineering, in-context learning, function calling, hallucination, grounding |
+| **AI Agents and Automation** | AI agent, agentic, multi-agent, code generation, copilot, workflow automation |
+| **Practical AI Systems** | semantic search, vector database, embedding, recommendation system, question answering |
+| **AI Product and UX** | chatbot, conversational AI, human-AI interaction, explainability, AI safety |
+| **Multimodal and Emerging** | multimodal, vision language, text to image, document AI, speech recognition |
 
 ---
 
@@ -86,8 +124,8 @@ source .venv/bin/activate
 | `python -m src.pipeline` | Full end-to-end run | All three |
 
 Output files:
-- `daily_papers/raw_YYYY_MM_DD.json` — raw fetcher results
-- `daily_papers/digest_YYYY_MM_DD.md` — scored digest (markdown)
+- `daily_papers/raw_YYYY_MM_DD.json` — raw fetcher output
+- `daily_papers/digest_YYYY_MM_DD.md` — scored digest with summaries
 - `logs/run_YYYY_MM_DD.log` — run summary with counts and Notion URL
 
 ---
@@ -103,15 +141,3 @@ To enable it, add these three **repository secrets** under Settings → Secrets 
 - `NOTION_DATABASE_ID`
 
 You can also trigger a run on demand from the **Actions** tab → **Daily arXiv Digest** → **Run workflow**.
-
----
-
-## Topics covered
-
-| Cluster | Keywords |
-|---|---|
-| RAG | RAG, retrieval-augmented generation |
-| Recommendation | collaborative filtering, cold-start, session-based |
-| LLM Serving | vLLM, KV cache, quantization, inference optimization |
-| AI Agents | AI agent, agentic, tool use, function calling |
-| Search & Ranking | search ranking, learning to rank, neural ranking |
