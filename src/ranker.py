@@ -23,7 +23,8 @@ logger = logging.getLogger(__name__)
 RAW_OUTPUT_DIR = Path("daily_papers")
 MIN_SCORE = 7
 MODEL = "gpt-4o-mini"
-BATCH_SIZE = 50  # keeps completion tokens well under the 16k model limit
+BATCH_SIZE = 50   # keeps completion tokens well under the 16k model limit
+MAX_RETRIES = 3   # per-batch retry attempts on parse failure
 
 _SYSTEM_PROMPT = """\
 You are a research curator for a web developer who is learning AI and wants to \
@@ -55,8 +56,11 @@ NOVELTY AND TIMING (0-2):
   1 = incremental improvement on known technique
   0 = replication or minor variation of existing work
 
-Respond with a JSON array only. No preamble, no markdown fences, no commentary.
-Each element must match this exact schema:
+Respond with a JSON object containing a single key "papers" whose value is an array. \
+No preamble, no markdown fences, no commentary. Example structure:
+{"papers": [{...}, {...}]}
+
+Each element of the array must match this exact schema:
 {
   "id": "<arXiv ID string>",
   "score": <integer 1-10, sum of the four criteria>,
@@ -113,27 +117,36 @@ def _call_openai(papers: list) -> list:
     client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
     user_prompt = _build_user_prompt(papers)
 
-    logger.info("Sending %d papers to %s for scoring…", len(papers), MODEL)
-    t0 = time.monotonic()
-    response = client.chat.completions.create(
-        model=MODEL,
-        messages=[
-            {"role": "system", "content": _SYSTEM_PROMPT},
-            {"role": "user", "content": user_prompt},
-        ],
-        temperature=0.2,
-        response_format={"type": "json_object"},
-    )
-    elapsed = time.monotonic() - t0
-
-    raw = response.choices[0].message.content
-    logger.info(
-        "OpenAI call complete in %.1fs. Tokens used: %d prompt / %d completion",
-        elapsed,
-        response.usage.prompt_tokens,
-        response.usage.completion_tokens,
-    )
-    return _parse_response(raw)
+    for attempt in range(1, MAX_RETRIES + 1):
+        logger.info("Sending %d papers to %s for scoring… (attempt %d/%d)", len(papers), MODEL, attempt, MAX_RETRIES)
+        t0 = time.monotonic()
+        response = client.chat.completions.create(
+            model=MODEL,
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=0.2,
+            response_format={"type": "json_object"},
+        )
+        elapsed = time.monotonic() - t0
+        raw = response.choices[0].message.content
+        logger.info(
+            "OpenAI call complete in %.1fs. Tokens used: %d prompt / %d completion",
+            elapsed,
+            response.usage.prompt_tokens,
+            response.usage.completion_tokens,
+        )
+        try:
+            return _parse_response(raw)
+        except ValueError as exc:
+            if attempt < MAX_RETRIES:
+                wait = 2 ** attempt
+                logger.warning("Parse failed on attempt %d/%d (%s) — retrying in %ds…", attempt, MAX_RETRIES, exc, wait)
+                time.sleep(wait)
+            else:
+                logger.error("All %d attempts failed for this batch — raising.", MAX_RETRIES)
+                raise
 
 
 def _format_digest(papers: list, total_fetched: int = 0) -> str:
