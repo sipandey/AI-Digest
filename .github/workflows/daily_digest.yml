@@ -7,7 +7,7 @@ name: Daily arXiv Digest
 
 on:
   schedule:
-    - cron: "30 1 * * *"  # 07:00 IST (UTC+5:30)
+    # - cron: "30 1 * * *"  # 07:00 IST (UTC+5:30) — DISABLED
   workflow_dispatch:       # allow manual runs from the Actions tab
 
 # Only one digest run at a time; never cancel an in-progress run.
